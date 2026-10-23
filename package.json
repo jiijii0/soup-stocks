@@ -1,0 +1,10 @@
+{
+  "name": "soup-stocks",
+  "private": true,
+  "type": "module",
+  "description": "Film stock editor for Soup Engine. No dependencies; this file exists so node reads web/*.js as modules, which the browser does anyway.",
+  "scripts": {
+    "test": "./tools/test.sh",
+    "build": "./tools/build-wasm.sh web"
+  }
+}

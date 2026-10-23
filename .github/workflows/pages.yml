@@ -1,0 +1,69 @@
+name: build and publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  # Queue, do not cancel. With cancel-in-progress a second push kills
+  # the first run's deploy step mid-flight, and the page stays on the
+  # older build with nothing obviously wrong -- which is how the first
+  # three runs here ended up with a cancelled deploy. GitHub's own Pages
+  # template says false for the same reason.
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    # The bridge is checked natively first. A compiler proves the C is
+    # valid; this proves it is correct, and it needs no wasm toolchain.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: check the engine bridge
+        run: ./tools/test.sh
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 3.1.61
+          actions-cache-folder: emsdk-cache
+
+      - name: compile the engine to WebAssembly
+        run: ./tools/build-wasm.sh web
+
+      - name: stamp the build
+        # So a stale page can be identified from the browser rather than
+        # guessed at. Drift between the editor's engine and the camera's
+        # is the one failure that shows up as a wrong picture and
+        # nothing else.
+        run: |
+          printf '{"commit":"%s","built":"%s"}\n' \
+            "$GITHUB_SHA" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > web/build.json
+          cat web/build.json
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

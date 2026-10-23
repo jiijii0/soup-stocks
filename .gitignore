@@ -1,0 +1,5 @@
+# Built by tools/build-wasm.sh, or by CI. Never committed: a checked-in
+# binary is exactly how the editor's engine drifts from the camera's.
+web/soup.js
+web/soup.wasm
+web/build.json

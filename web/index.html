@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soup Stocks</title>
+<style>
+:root {
+  --bg: #f2efe6; --panel: #fbf9f3; --ink: #2b2722; --dim: #7d756a;
+  --line: #ddd6c7; --accent: #b4552d; --accent-soft: #e8d9cc;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #171512; --panel: #201d19; --ink: #e8e2d6; --dim: #9a9083;
+    --line: #332e27; --accent: #d9743f; --accent-soft: #3a2b21;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #171512; --panel: #201d19; --ink: #e8e2d6; --dim: #9a9083;
+  --line: #332e27; --accent: #d9743f; --accent-soft: #3a2b21;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+}
+header {
+  display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  padding: 14px 16px; border-bottom: 1px solid var(--line);
+}
+h1 { font: 600 17px/1 var(--mono); margin: 0; letter-spacing: .06em; }
+.sub { color: var(--dim); font-size: 12px; }
+.ver { margin-left: auto; font: 11px var(--mono); color: var(--dim); }
+.ver a { color: var(--dim); text-decoration: underline; }
+.ver a:hover { color: var(--accent); }
+main { display: grid; grid-template-columns: 1fr 340px; gap: 0; align-items: start; }
+@media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+
+#stage {
+  position: sticky; top: 0; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px; min-width: 0;
+}
+@media (max-width: 860px) { #stage { position: static; } }
+#frame {
+  position: relative; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 3px; overflow: hidden; display: grid; place-items: center;
+  min-height: 300px;
+}
+#frame canvas { display: block; max-width: 100%; height: auto; }
+#drop {
+  padding: 56px 20px; text-align: center; color: var(--dim);
+  border: 1px dashed var(--line); margin: 20px; border-radius: 3px;
+  font-size: 13px; cursor: pointer; width: 100%;
+}
+#drop.over { border-color: var(--accent); color: var(--accent); }
+#drop b { color: var(--ink); font-weight: 600; }
+.bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.bar .spacer { flex: 1; }
+button, label.btn {
+  font: 12px/1 var(--mono); letter-spacing: .04em; cursor: pointer;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+  padding: 8px 11px; border-radius: 3px;
+}
+button:hover, label.btn:hover { border-color: var(--accent); color: var(--accent); }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button.primary:hover { color: #fff; filter: brightness(1.08); }
+button:disabled { opacity: .45; cursor: default; }
+button:disabled:hover { border-color: var(--line); color: var(--ink); }
+#status { font: 11px var(--mono); color: var(--dim); min-height: 15px; }
+#install {
+  border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  background: var(--panel); border-radius: 3px; padding: 12px 14px;
+  font-size: 13px;
+}
+#install b { font: 600 11px/1 var(--mono); letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim); display: block; margin-bottom: 8px; }
+#install ol { margin: 0; padding-left: 20px; }
+#install li { margin: 4px 0; }
+#install code { font: 12px var(--mono); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 2px; padding: 1px 5px; }
+#install p { margin: 8px 0 0; font-size: 12px; color: var(--dim); }
+select {
+  font: 12px/1 var(--mono); padding: 8px 9px; border-radius: 3px;
+  background: var(--panel); color: var(--ink); border: 1px solid var(--line);
+}
+.clamp { color: var(--accent); }
+
+#panel { border-left: 1px solid var(--line); min-height: 100vh; background: var(--panel); }
+@media (max-width: 860px) { #panel { border-left: 0; border-top: 1px solid var(--line); min-height: 0; } }
+.grp { border-bottom: 1px solid var(--line); }
+.grp > summary {
+  padding: 11px 14px; cursor: pointer; font: 600 11px/1 var(--mono);
+  letter-spacing: .1em; text-transform: uppercase; color: var(--dim);
+}
+.grp[open] > summary { color: var(--ink); }
+.grp > div { padding: 2px 14px 14px; }
+.row { margin: 12px 0; }
+.row:first-child { margin-top: 4px; }
+.lab { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.lab span:first-child { font-size: 12px; }
+.val { font: 11px var(--mono); color: var(--accent); }
+.help { font-size: 11px; color: var(--dim); margin: 3px 0 0; }
+input[type=range] { width: 100%; margin: 5px 0 0; accent-color: var(--accent); }
+input[type=text] {
+  width: 100%; font: 12px var(--mono); padding: 7px 8px; margin-top: 4px;
+  background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 3px;
+}
+.sub3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 5px; }
+.sub3 > div { text-align: center; }
+.sub3 label { font: 10px var(--mono); color: var(--dim); }
+.hue { display: flex; align-items: center; gap: 8px; margin: 5px 0; }
+.sw { width: 11px; height: 11px; border-radius: 2px; flex: none; }
+.hue input { flex: 1; margin: 0; }
+.hue .hv { font: 10px var(--mono); color: var(--dim); width: 34px; text-align: right; flex: none; }
+footer { padding: 14px 16px 28px; color: var(--dim); font-size: 11px; grid-column: 1 / -1;
+  border-top: 1px solid var(--line); }
+footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>SOUP STOCKS</h1>
+  <span class="sub">film stock editor for Soup Engine</span>
+  <span class="ver" id="ver">loading engine&hellip;</span>
+</header>
+
+<main>
+  <section id="stage">
+    <div id="frame">
+      <div id="drop">
+        <b>Drop a photo here</b><br>or click to choose one<br>
+        <span style="font-size:11px">a JPEG out of the camera works best</span>
+      </div>
+      <canvas id="cv" hidden></canvas>
+    </div>
+    <div class="bar">
+      <label class="btn">Open photo<input type="file" id="file" accept="image/*" hidden></label>
+      <button id="cmp" disabled>Hold to compare</button>
+      <select id="target" title="The frame the camera will write. It changes how much halation survives.">
+        <option value="1536,1" selected>from jpeg, full</option>
+        <option value="768,2">from jpeg, half</option>
+        <option value="4368,1">from raw, full</option>
+        <option value="2184,2">from raw, half</option>
+      </select>
+      <span class="spacer"></span>
+      <label class="btn">Load .fs<input type="file" id="fsin" accept=".fs,text/plain" hidden></label>
+      <button id="save" class="primary">Download .fs</button>
+    </div>
+    <div id="status"></div>
+    <aside id="install" hidden></aside>
+  </section>
+
+  <aside id="panel"></aside>
+
+  <footer>
+    The preview runs <code>engine/look.c</code> compiled to WebAssembly &mdash;
+    the same code the camera runs, on the same pixels &mdash; so what you see here
+    is what the camera writes. Your photo never leaves this browser.
+    <br><br>
+    <a href="https://github.com/jiijii0/soup-stocks">Source</a> &middot; GPL v2
+  </footer>
+</main>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
